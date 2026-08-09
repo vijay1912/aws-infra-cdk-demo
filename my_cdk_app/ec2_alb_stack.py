@@ -35,7 +35,7 @@ class Ec2AlbStack(Stack):
             min_capacity=1,
             max_capacity=3,
             security_group=sg,
-            key_name="my-keypair"  # fallback property, no feature flag needed
+            key_name="my-keypair"  # legacy property, avoids feature flag issue
         )
 
         # User Data: install Apache
@@ -55,12 +55,10 @@ class Ec2AlbStack(Stack):
             security_group=sg
         )
 
-        # Listener with default target group (attach ASG here)
-        listener = alb.add_listener("Listener", port=80, default_action=elbv2.ListenerAction.forward(
-            [asg]
-        ))
+        # Listener
+        listener = alb.add_listener("Listener", port=80)
 
-        # Health check configuration
+        # Attach ASG to Listener (this creates the default target group)
         listener.add_targets("AppFleet",
             port=80,
             targets=[asg],
