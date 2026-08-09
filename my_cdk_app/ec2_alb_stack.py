@@ -32,7 +32,7 @@ class Ec2AlbStack(Stack):
             instance_type=ec2.InstanceType("t2.micro"),
             machine_image=ec2.MachineImage.latest_amazon_linux2(),
             security_group=sg,
-            key_name="my-keypair"  # use your existing EC2 key pair name
+            key_name="my-keypair"  # replace with your actual EC2 key pair name
         )
 
         # User Data: install Apache
@@ -41,33 +41,4 @@ class Ec2AlbStack(Stack):
             "sudo yum install -y httpd",
             "sudo systemctl start httpd",
             "sudo systemctl enable httpd",
-            "echo '<h1>Hello from EC2 behind ALB!</h1>' | sudo tee /var/www/html/index.html"
-        )
-
-        # Application Load Balancer
-        alb = elbv2.ApplicationLoadBalancer(
-            self, "MyALB",
-            vpc=vpc,
-            internet_facing=True,
-            security_group=sg
-        )
-
-        # Listener
-        listener = alb.add_listener("Listener", port=80)
-
-        # Attach EC2 instance to Listener
-        listener.add_targets("AppFleet",
-            port=80,
-            targets=[instance],
-            health_check=elbv2.HealthCheck(
-                path="/",
-                port="80",
-                protocol=elbv2.Protocol.HTTP,
-                healthy_threshold_count=2,
-                unhealthy_threshold_count=2,
-                interval=Duration.seconds(30)
-            )
-        )
-
-        # Output ALB DNS
-        CfnOutput(self, "AlbDnsName", value=alb.load_balancer_dns_name)
+            "echo '<h1>Hello from EC2 behind ALB!
