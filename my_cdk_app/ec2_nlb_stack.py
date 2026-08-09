@@ -4,10 +4,9 @@ from aws_cdk import (
     aws_elasticloadbalancingv2 as elbv2,
     Duration
 )
-from aws_cdk.aws_elasticloadbalancingv2_targets import InstanceIdTarget
 from constructs import Construct
 
-class Ec2NlbStack(Stack):
+class Ec2AlbStack(Stack):
 
     def __init__(self, scope: Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
@@ -32,43 +31,39 @@ class Ec2NlbStack(Stack):
             machine_image=ec2.MachineImage.latest_amazon_linux2(),
             vpc=vpc,
             security_group=sg,
-            key_pair=ec2.KeyPair.from_key_pair_name(self, "MyKeyPair", "my-keypair")
+            key_pair=ec2.KeyPair.from_key_pair_name(self, "CDKmyKeyPair", "CDKmy-keypair")
         )
 
-        # User Data: install Apache and sample app
+        # User Data: install Apache
         ec2_instance.add_user_data(
             "sudo yum update -y",
             "sudo yum install -y httpd",
             "sudo systemctl start httpd",
             "sudo systemctl enable httpd",
-            "echo '<h1>Hello from EC2 behind NLB!</h1>' | sudo tee /var/www/html/index.html"
+            "echo '<h1>Hello from EC2 behind ALB!</h1>' | sudo tee /var/www/html/index.html"
         )
 
-        # Network Load Balancer
-        nlb = elbv2.NetworkLoadBalancer(
-            self, "CDKmyNLB",
+        # Application Load Balancer
+        alb = elbv2.ApplicationLoadBalancer(
+            self, "CDKmyALB",
             vpc=vpc,
-            internet_facing=True
+            internet_facing=True,
+            security_group=sg
         )
 
-        # Target Group with health check
-        target_group = elbv2.NetworkTargetGroup(
-            self, "CDKmyTargetGroup",
-            vpc=vpc,
+        # Listener
+        listener = alb.add_listener("Listener", port=80)
+
+        # Target Group (attach EC2 instance)
+        listener.add_targets("AppFleet",
             port=80,
-            targets=[InstanceIdTarget(ec2_instance.instance_id, port=80)],
+            targets=[ec2_instance],
             health_check=elbv2.HealthCheck(
+                path="/",
                 port="80",
-                protocol=elbv2.Protocol.TCP,
+                protocol=elbv2.Protocol.HTTP,
                 healthy_threshold_count=2,
                 unhealthy_threshold_count=2,
                 interval=Duration.seconds(30)
             )
-        )
-
-        # Listener
-        nlb.add_listener(
-            "CDKmyListener",
-            port=80,
-            default_target_groups=[target_group]
         )
