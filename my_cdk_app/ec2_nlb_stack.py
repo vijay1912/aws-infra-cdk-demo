@@ -55,7 +55,7 @@ class Ec2NlbStack(Stack):
             self, "CDKmyTargetGroup",
             vpc=vpc,
             port=80,
-            targets=[elbv2.InstanceTarget(ec2_instance.instance_id, port=80)],
+            targets=[elbv2.IpTarget(ec2_instance.instance_private_ip, port=80)],
             health_check=elbv2.HealthCheck(
                 port="80",
                 protocol=elbv2.Protocol.TCP,
