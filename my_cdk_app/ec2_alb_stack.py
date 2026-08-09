@@ -35,7 +35,7 @@ class Ec2AlbStack(Stack):
             min_capacity=1,
             max_capacity=3,
             security_group=sg,
-            key_name="my-keypair"  # legacy property, avoids feature flag issue
+            key_pair=ec2.KeyPair.from_key_pair_name(self, "MyKeyPair", "my-keypair")
         )
 
         # User Data: install Apache
