@@ -1,6 +1,6 @@
 import aws_cdk as cdk
-from my_cdk_app.ec2_nlb_stack import Ec2NlbStack
+from my_cdk_app.ec2_alb_stack import Ec2AlbStack
 
 app = cdk.App()
-Ec2NlbStack(app, "Ec2NlbStack")
+Ec2AlbStack(app, "Ec2AlbStack")
 app.synth()
