@@ -1,50 +1,37 @@
-name: Deploy EC2 + NLB with CDK
-
-on:
-  push:
-    branches:
-      - main
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      # Checkout repo
       - name: Checkout
         uses: actions/checkout@v3
 
-      # Setup Node.js (for CDK CLI)
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '22'   # stable LTS, not 24
+          node-version: '22'   # use stable LTS
 
-      # Setup Python (for your CDK app)
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # Install CDK CLI (force v2)
-      - name: Install AWS CDK
+      # Force CDK v2
+      - name: Install AWS CDK v2
         run: npm install -g aws-cdk@2
 
-      # Install Python dependencies
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      # Cleanup old synth/context
+      # Clean stale context
       - name: Cleanup CDK context
         run: |
           rm -rf cdk.out
           rm -rf .cdk.context.json
 
-      # Verify context flag
+      # Verify flag is active
       - name: Verify CDK context
         run: cdk context
 
-      # Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -52,10 +39,14 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # Bootstrap (first time only)
       - name: CDK Bootstrap
         run: cdk bootstrap aws://547361936227/us-east-1
 
-      # Deploy
+      - name: CDK Synth
+        run: cdk synth
+
+      - name: CDK Diff
+        run: cdk diff
+
       - name: CDK Deploy
         run: cdk deploy --require-approval never
