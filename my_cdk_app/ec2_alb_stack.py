@@ -32,7 +32,7 @@ class Ec2AlbStack(Stack):
             instance_type=ec2.InstanceType("t2.micro"),
             machine_image=ec2.MachineImage.latest_amazon_linux2(),
             security_group=sg,
-            key_name="my-keypair"  # replace with your actual EC2 key pair name
+            key_name="cdk"  # replace with your actual EC2 key pair name
         )
 
         # User Data: install Apache
