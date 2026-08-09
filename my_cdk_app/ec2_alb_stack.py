@@ -3,7 +3,8 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_autoscaling as autoscaling,
     aws_elasticloadbalancingv2 as elbv2,
-    Duration
+    Duration,
+    CfnOutput
 )
 from constructs import Construct
 
@@ -25,7 +26,7 @@ class Ec2AlbStack(Stack):
         sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(22), "Allow SSH")
         sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "Allow HTTP")
 
-        # Auto Scaling Group
+        # Auto Scaling Group (using key_name for now)
         asg = autoscaling.AutoScalingGroup(
             self, "MyASG",
             vpc=vpc,
@@ -34,7 +35,7 @@ class Ec2AlbStack(Stack):
             min_capacity=1,
             max_capacity=3,
             security_group=sg,
-            key_name="my-keypair"  # legacy property
+            key_name="my-keypair"  # fallback property, no feature flag needed
         )
 
         # User Data: install Apache
@@ -54,8 +55,24 @@ class Ec2AlbStack(Stack):
             security_group=sg
         )
 
-        # Listener
-        listener = alb.add_listener("Listener", port=80)
+        # Listener with default target group (attach ASG here)
+        listener = alb.add_listener("Listener", port=80, default_action=elbv2.ListenerAction.forward(
+            [asg]
+        ))
 
-        # Attach ASG to ALB
-        listener
+        # Health check configuration
+        listener.add_targets("AppFleet",
+            port=80,
+            targets=[asg],
+            health_check=elbv2.HealthCheck(
+                path="/",
+                port="80",
+                protocol=elbv2.Protocol.HTTP,
+                healthy_threshold_count=2,
+                unhealthy_threshold_count=2,
+                interval=Duration.seconds(30)
+            )
+        )
+
+        # Output ALB DNS
+        CfnOutput(self, "AlbDnsName", value=alb.load_balancer_dns_name)
