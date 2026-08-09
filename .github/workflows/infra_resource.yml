@@ -28,7 +28,7 @@ jobs:
 
       # Install CDK CLI
       - name: Install AWS CDK
-        run: npm install -g aws-cdk
+        run: npm install -g aws-cdk@latest
 
       # Install Python dependencies
       - name: Install Python dependencies
