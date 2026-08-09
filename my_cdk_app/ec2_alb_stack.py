@@ -2,6 +2,7 @@ from aws_cdk import (
     Stack,
     aws_ec2 as ec2,
     aws_elasticloadbalancingv2 as elbv2,
+    aws_elasticloadbalancingv2_targets as elbv2_targets,
     Duration,
     CfnOutput
 )
@@ -55,10 +56,10 @@ class Ec2AlbStack(Stack):
         # Listener on port 80
         listener = alb.add_listener("Listener", port=80)
 
-        # Attach EC2 instance to Listener
+        # Attach EC2 instance to Listener using InstanceTarget
         listener.add_targets("AppFleet",
             port=80,
-            targets=[instance],
+            targets=[elbv2_targets.InstanceTarget(instance)],
             health_check=elbv2.HealthCheck(
                 path="/",
                 port="80",
