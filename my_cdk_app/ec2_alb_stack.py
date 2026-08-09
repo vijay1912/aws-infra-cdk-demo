@@ -1,7 +1,6 @@
 from aws_cdk import (
     Stack,
     aws_ec2 as ec2,
-    aws_autoscaling as autoscaling,
     aws_elasticloadbalancingv2 as elbv2,
     Duration,
     CfnOutput
@@ -26,25 +25,23 @@ class Ec2AlbStack(Stack):
         sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(22), "Allow SSH")
         sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "Allow HTTP")
 
-        # Auto Scaling Group (using key_name for now)
-        asg = autoscaling.AutoScalingGroup(
-            self, "MyASG",
+        # Single EC2 Instance
+        instance = ec2.Instance(
+            self, "MyInstance",
             vpc=vpc,
             instance_type=ec2.InstanceType("t2.micro"),
             machine_image=ec2.MachineImage.latest_amazon_linux2(),
-            min_capacity=1,
-            max_capacity=3,
             security_group=sg,
-            key_pair=ec2.KeyPair.from_key_pair_name(self, "MyKeyPair", "my-keypair")
+            key_name="my-keypair"  # use your existing EC2 key pair name
         )
 
         # User Data: install Apache
-        asg.add_user_data(
+        instance.add_user_data(
             "sudo yum update -y",
             "sudo yum install -y httpd",
             "sudo systemctl start httpd",
             "sudo systemctl enable httpd",
-            "echo '<h1>Hello from Auto Scaling EC2 behind ALB!</h1>' | sudo tee /var/www/html/index.html"
+            "echo '<h1>Hello from EC2 behind ALB!</h1>' | sudo tee /var/www/html/index.html"
         )
 
         # Application Load Balancer
@@ -58,10 +55,10 @@ class Ec2AlbStack(Stack):
         # Listener
         listener = alb.add_listener("Listener", port=80)
 
-        # Attach ASG to Listener (this creates the default target group)
+        # Attach EC2 instance to Listener
         listener.add_targets("AppFleet",
             port=80,
-            targets=[asg],
+            targets=[instance],
             health_check=elbv2.HealthCheck(
                 path="/",
                 port="80",
