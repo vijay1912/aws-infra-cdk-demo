@@ -31,7 +31,7 @@ class Ec2NlbStack(Stack):
             machine_image=ec2.MachineImage.latest_amazon_linux2(),
             vpc=vpc,
             security_group=sg,
-            key_name="CDKmy-keypair"  # must exist in AWS
+            key_pair=ec2.KeyPair.from_key_pair_name(self, "MyKeyPair", "my-keypair")
         )
 
         # User Data: install Apache and sample app
