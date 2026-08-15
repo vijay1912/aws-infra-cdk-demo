@@ -16,24 +16,33 @@ class Ec2AlbStack(Stack):
         # VPC
         vpc = ec2.Vpc(self, "MyVpc", max_azs=2)
 
-        # Security Group
-        sg = ec2.SecurityGroup(
-            self, "MySecurityGroup",
+        # ALB Security Group
+        alb_sg = ec2.SecurityGroup(
+            self, "AlbSG",
             vpc=vpc,
-            description="Allow SSH and HTTP",
+            description="Allow HTTP from internet",
             allow_all_outbound=True
         )
-        sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(22), "Allow SSH")
-        sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "Allow HTTP")
+        alb_sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80), "Allow HTTP from anywhere")
 
-        # Single EC2 Instance
+        # EC2 Security Group
+        ec2_sg = ec2.SecurityGroup(
+            self, "Ec2SG",
+            vpc=vpc,
+            description="Allow SSH + HTTP from ALB",
+            allow_all_outbound=True
+        )
+        ec2_sg.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(22), "Allow SSH")
+        ec2_sg.add_ingress_rule(alb_sg, ec2.Port.tcp(80), "Allow HTTP from ALB")
+
+        # EC2 Instance in public subnet
         instance = ec2.Instance(
             self, "MyInstance",
             vpc=vpc,
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
             instance_type=ec2.InstanceType("t2.micro"),
             machine_image=ec2.MachineImage.latest_amazon_linux2(),
-            security_group=sg,
+            security_group=ec2_sg,
             key_name="cdk"  # replace with your actual EC2 key pair name
         )
 
@@ -51,13 +60,13 @@ class Ec2AlbStack(Stack):
             self, "MyALB",
             vpc=vpc,
             internet_facing=True,
-            security_group=sg
+            security_group=alb_sg
         )
 
         # Listener on port 80
         listener = alb.add_listener("Listener", port=80)
 
-        # Attach EC2 instance to Listener using InstanceTarget
+        # Attach EC2 instance to Listener
         listener.add_targets("AppFleet",
             port=80,
             targets=[elbv2_targets.InstanceTarget(instance)],
