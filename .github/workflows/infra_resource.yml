@@ -65,7 +65,12 @@ jobs:
 
       - name: CDK Action
         run: |
-          if [ "${{ github.event.inputs.action }}" == "deploy" ]; then
+          ACTION="${{ github.event.inputs.action }}"
+          if [ -z "$ACTION" ]; then
+            ACTION="deploy"
+          fi
+      
+          if [ "$ACTION" == "deploy" ]; then
             cdk deploy --require-approval never
           else
             cdk destroy --force
