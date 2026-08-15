@@ -49,10 +49,18 @@ class Ec2AlbStack(Stack):
         # User Data: install Apache
         instance.add_user_data(
             "sudo yum update -y",
-            "sudo yum install -y httpd",
-            "sudo systemctl start httpd",
-            "sudo systemctl enable httpd",
-            "echo '<h1>Hello from EC2 behind ALB!</h1>' | sudo tee /var/www/html/index.html"
+            "sudo yum install -y python3-pip",
+            "pip3 install flask gunicorn",
+            "cat << 'EOF' > /home/ec2-user/app.py",
+            "from flask import Flask",
+            "app = Flask(__name__)",
+            "@app.route('/')",
+            "def home():",
+            "    return '<h1>Welcome to my Flask Web Application!</h1>'",
+            "if __name__ == '__main__':",
+            "    app.run(host='0.0.0.0', port=80)",
+            "EOF",
+            "nohup python3 /home/ec2-user/app.py &"
         )
 
         # Application Load Balancer
