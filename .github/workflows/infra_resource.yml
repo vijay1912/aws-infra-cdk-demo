@@ -4,7 +4,16 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:   # allows manual trigger from Actions tab
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Choose action: deploy or destroy"
+        required: true
+        default: "deploy"
+        type: choice
+        options:
+          - deploy
+          - destroy
 
 jobs:
   deploy:
@@ -17,27 +26,24 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '22'   # use stable LTS
+          node-version: '22'
 
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # Force CDK v2
       - name: Install AWS CDK v2
         run: npm install -g aws-cdk@2
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      # Clean stale context
       - name: Cleanup CDK context
         run: |
           rm -rf cdk.out
           rm -rf .cdk.context.json
 
-      # Verify flag is active
       - name: Verify CDK context
         run: cdk context
 
