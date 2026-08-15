@@ -57,5 +57,10 @@ jobs:
       - name: CDK Diff
         run: cdk diff
 
-      - name: CDK Deploy
-        run: cdk deploy --require-approval never
+      - name: CDK Action
+        run: |
+          if [ "${{ github.event.inputs.action }}" == "deploy" ]; then
+            cdk deploy --require-approval never
+          else
+            cdk destroy --force
+          fi
