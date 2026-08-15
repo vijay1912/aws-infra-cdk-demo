@@ -30,6 +30,7 @@ class Ec2AlbStack(Stack):
         instance = ec2.Instance(
             self, "MyInstance",
             vpc=vpc,
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
             instance_type=ec2.InstanceType("t2.micro"),
             machine_image=ec2.MachineImage.latest_amazon_linux2(),
             security_group=sg,
